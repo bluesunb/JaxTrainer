@@ -5,6 +5,7 @@ from flax.core import FrozenDict
 
 def flatten_dict(d: Dict) -> Dict:
     """Flattens a nested dictionary."""
+    # It can be replaced by flax.traverse_util.flatten_dict
     flat_dict = {}
     for k, v in d.items():
         if isinstance(v, (dict, FrozenDict)):

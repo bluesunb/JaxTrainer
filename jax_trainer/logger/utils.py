@@ -91,7 +91,7 @@ def build_tool_logger(logger_config: ConfigDict, full_config: ConfigDict):
     logger_type = logger_config.get("tool", "TensorBoard").lower()
     if logger_type == "tensorboard":
         logger = TensorBoardLogger(save_dir=log_dir, version=version, name="")
-        hparams = flatten_configdict(full_config)
+        hparams = flatten_configdict(full_config)       # Can be replaced by flax.traverse_util.flatten_dict(full_config.to_dict())
         hparams = jax.tree_map(class_to_name, hparams)
         logger.log_hyperparams(hparams)
     elif logger_type == "wandb":
