@@ -1,65 +1,68 @@
 from functools import partial
-from typing import Any, Callable, NamedTuple, Sequence, Union
+from typing import Any, NamedTuple, Sequence, Union, Type
 
 import numpy as np
 
 
-def numpy_collate(batch: Union[np.ndarray, Sequence[Any], Any]):
-    """Collate function for numpy arrays.
-
-    This function acts as replacement to the standard PyTorch-tensor collate function in PyTorch DataLoader.
+def numpy_collate(batch: Union[np.ndarray, Sequence[Any], Any]) -> Union[np.ndarray, Sequence[np.ndarray]]:
+    """
+    Collate function for numpy arrays.
 
     Args:
-        batch: Batch of data. Can be a numpy array, a list of numpy arrays, or nested lists of numpy arrays.
+        batch:  A batch of numpy arrays. Can be a list of ndarrays or nested list of ndarrays.
 
     Returns:
-        Batch of data as (potential list or tuple of) numpy array(s).
+        Batch of data as a single ndarray or a list of ndarrays.
     """
     if isinstance(batch, np.ndarray):
         return batch
     elif isinstance(batch[0], np.ndarray):
         return np.stack(batch)
     elif isinstance(batch[0], (tuple, list)):
+        # batchify the list of single data pairs (e.g. [(x1, y1), (x2, y2), ...])
         transposed = zip(*batch)
         return [numpy_collate(samples) for samples in transposed]
     else:
         return np.array(batch)
 
 
-def batch_collate(tuple_class: NamedTuple, batch: Sequence[Any]):
-    """Transforms list of inputs to dataclass of inputs.
-
+def batch_collate(tuple_class: Type[NamedTuple], batch: Sequence[Any]) -> NamedTuple:
+    """
+    Collate function for NamedTuple classes.
+    
     Args:
-        tuple_class: Batch class to be constructed. Can be a dataclass or a NamedTuple.
-        batch: List of inputs.
+        tuple_class:    NamedTuple class the batch is collated into.
+        batch:          A batch of data samples.
 
     Returns:
-        Batch object of inputs.
+        NamedTuple instance with batch data.
     """
     size = batch[0].shape[0]
     return tuple_class(size, *batch)
 
 
-def numpy_batch_collate(tuple_class: NamedTuple, batch: Sequence[Any]):
-    """Wrapper function to combine numpy_collate and batch_collate into a single function.
-
+def numpy_batch_collate(tuple_class: Type[NamedTuple], batch: Sequence[Any]) -> NamedTuple:
+    """
+    Collate the batch into a np.ndarray and then into a NamedTuple.
+    
     Args:
-        tuple_class: Batch class to be constructed. Can be a dataclass or a NamedTuple.
-        batch: List of inputs.
+        tuple_class:    NamedTuple class the batch is collated into.
+        batch:          A batch of data samples.
 
     Returns:
-        Batch object of inputs.
+        NamedTuple instance with batch data.
     """
     return batch_collate(tuple_class, numpy_collate(batch))
 
 
-def build_batch_collate(tuple_class: NamedTuple):
-    """Wrapper function to combine numpy_collate and batch_collate into a single function.
+def build_batch_collate(tuple_class: Type[NamedTuple]):
+    """
+    Build a batch collate function for a NamedTuple class.
 
     Args:
-        tuple_class: Batch class to be constructed. Can be a dataclass or a NamedTuple.
+        tuple_class:    NamedTuple class the batch is collated into.
 
     Returns:
-        Collate function to combine list of inputs to batch object of inputs.
+        Collate function for the NamedTuple class.
     """
-    return partial(numpy_batch_collate, tuple_class)
+    return partial(batch_collate, tuple_class)

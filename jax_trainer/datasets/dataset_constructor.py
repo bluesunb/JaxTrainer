@@ -5,14 +5,15 @@ from jax_trainer.utils import resolve_import
 
 
 def build_dataset_module(dataset_config: ConfigDict) -> DatasetModule:
-    """Builds the dataset module.
+    """
+    Builds the dataset module from the given configuration.
 
     Args:
-      dataset_config: Configuration for the dataset.
+        dataset_config: Configuration dictionary for the dataset.
 
     Returns:
-      dataset_module: Dataset module.
+        DatasetModule: The dataset module.
     """
     constructor = resolve_import(dataset_config.constructor)
-    dataset_module = constructor(dataset_config)
-    return dataset_module
+    module = constructor(dataset_config)
+    return module

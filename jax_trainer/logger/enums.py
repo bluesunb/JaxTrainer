@@ -2,14 +2,16 @@ from enum import IntEnum
 
 
 class LogMetricMode(IntEnum):
-    """Enum to determine how metrics are aggregated over the epoch.
+    """
+    Enum for how to aggregate the metrics over the epochs.
 
-    MEAN: The metric is averaged over the epoch.
-    SUM: The metric is summed over the epoch.
-    SINGLE: The metric is logged as a single value.
-    MAX: The maximum value of the metric is logged.
-    MIN: The minimum value of the metric is logged.
-    STD: The standard deviation of the metric is logged.
+    Attributes:
+        MEAN:   average over the epochs
+        SUM:    sum over the epochs
+        SINGLE: only the last epoch is logged
+        MAX:    maximum over the epochs
+        MIN:    minimum over the epochs
+        STD:    standard deviation over the epochs
     """
 
     MEAN = 1
@@ -20,14 +22,17 @@ class LogMetricMode(IntEnum):
     STD = 6
 
 
-class LogMode(IntEnum):
-    """Enum to determine when metrics are logged.
+class LogStage(IntEnum):
+    """
+    Enum for when to log the metrics.
 
-    ANY: The metric is logged in any logging mode.
-    TRAIN: The metric is logged during training.
-    VAL: The metric is logged during validation.
-    TEST: The metric is logged during testing.
-    EVAL: The metric is logged during both validation and testing.
+    Attributes:
+        ANY:    log in any logging mode
+        TRAIN:  log only during training
+        VAL:    log only during validation
+        TEST:   log only during testing
+        EVAL:   log only during evaluation
+
     """
 
     ANY = 0
@@ -38,11 +43,12 @@ class LogMode(IntEnum):
 
 
 class LogFreq(IntEnum):
-    """Enum to determine how often metrics are logged.
+    """
+    Enum for how often to log the metrics.
 
-    ANY: The metric is logged in any logging frequency.
-    STEP: The metric is logged at the end of every N steps.
-    EPOCH: The metric is logged at the end of every epoch.
+    ANY:    log in any logging frequency
+    STEP:   log every N step end
+    EPOCH:  log every epoch end
     """
 
     ANY = 0

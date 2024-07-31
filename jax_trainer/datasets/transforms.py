@@ -5,47 +5,45 @@ import numpy as np
 
 
 def image_to_numpy(img: Any):
-    """Converts image to numpy array.
-
-    Function used in the transformation of a PyTorch data loader. This function is used to convert the image to a numpy
-    array, normalized to the range [0, 1].
+    """
+    Convert an image to a numpy array.
 
     Args:
-        img: Image to be converted.
+        img: Image to convert.
 
     Returns:
-        Numpy array of the image.
+        np.ndarray: Converted image.
     """
     img = np.array(img, dtype=np.float32) / 255.0
     return img
 
 
 def normalize_transform(mean: Union[np.ndarray, float] = 0.0, std: Union[np.ndarray, float] = 1.0):
-    """Normalization transform on numpy arrays.
+    """
+    Normalize the input image.
 
     Args:
-        mean: Mean of the normalization.
-        std: Standard deviation of the normalization.
+        mean: Mean value for normalization.
+        std: Standard deviation value for normalization.
 
     Returns:
-        Normalization function.
+        Callable: Normalization function.
     """
-    if isinstance(mean, float):
-        mean = np.array(mean)
-    if isinstance(std, float):
-        std = np.array(std)
+    mean = np.asarray(mean, dtype=np.float32)
+    std = np.asarray(std, dtype=np.float32)
     return partial(normalize, mean=mean, std=std)
 
 
 def normalize(x: np.ndarray, mean: np.ndarray = 0.0, std: np.ndarray = 1.0):
-    """Normalize numpy array.
+    """
+    Normalize the input image.
 
     Args:
-        x: Array to be normalized.
-        mean: Mean of the normalization.
-        std: Standard deviation of the normalization.
+        x:      Image to normalize.
+        mean:   Mean value for normalization.
+        std:    Standard deviation value for normalization.
 
     Returns:
-        Normalized array.
+        np.ndarray: Normalized image.
     """
     return (x - mean.astype(x.dtype)) / std.astype(x.dtype)

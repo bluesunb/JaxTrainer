@@ -1,44 +1,40 @@
-from typing import Any, Callable, NamedTuple, Sequence, Union
+from typing import Callable, Sequence, Union
 
-import numpy as np
+import numpy as numpy
 import PIL
 import torch
 import torch.utils.data as data
-from flax.struct import dataclass
 from ml_collections import ConfigDict
 
 from jax_trainer.datasets.collate import numpy_collate
 
 
-def build_data_loaders(
+def build_dataloaders(
     *datasets: Sequence[data.Dataset],
     train: Union[bool, Sequence[bool]] = True,
     collate_fn: Callable = numpy_collate,
-    config: ConfigDict = ConfigDict()
+    config: ConfigDict = ConfigDict(),
 ):
-    """Creates data loaders used in JAX for a set of datasets.
+    """
+    Creates dataloaders for JAX for a given datasets.
 
     Args:
-        datasets: Datasets for which data loaders are created.
-        train: Sequence indicating which datasets are used for
-            training and which not. If single bool, the same value
-            is used for all datasets.
-        batch_size: Batch size to use in the data loaders.
-        num_workers: Number of workers for each dataset.
-        seed: Seed to initialize the workers and shuffling with.
-
-    Returns:
-        List of data loaders.
+        datasets:   Datasets to create dataloaders for.
+        train:      Indicates which datasets for training.
+        collate_fn: Function to collate the data.
+        config:     Configuration for the dataloaders.
     """
     loaders = []
     if not isinstance(train, (list, tuple)):
-        train = [train for _ in datasets]
+        train = [train] * len(datasets)
+
     batch_size = config.get("batch_size", 128)
     num_workers = config.get("num_workers", 4)
     seed = config.get("seed", 42)
+
     for dataset, is_train in zip(datasets, train):
         loader = data.DataLoader(
-            dataset,
+            dataset=dataset,
             batch_size=batch_size,
             shuffle=is_train,
             drop_last=is_train,
@@ -48,4 +44,5 @@ def build_data_loaders(
             generator=torch.Generator().manual_seed(seed),
         )
         loaders.append(loader)
+
     return loaders

@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Any, Tuple
 
 import jax
-import jax.numpy as jnp
+import jax.numpy as jp
+import jax.tree_util as jtr
 import numpy as np
 from absl import logging
 
@@ -17,60 +18,67 @@ class ArraySpec:
     value: Any = 0
 
 
-def array_to_spec(array: jnp.ndarray) -> ArraySpec:
+def array_to_spec(arr: jp.ndarray) -> ArraySpec:
     return ArraySpec(
-        shape=array.shape,
-        dtype=array.dtype,
-        device=str(array.device()),
-        value=array.reshape(-1)[0].item(),
+        shape=arr.shape,
+        dtype=arr.dtype,
+        device=str(arr.devices()),
+        value=arr.reshape(-1)[0].item()
     )
 
 
-def np_array_to_spec(array: np.ndarray) -> ArraySpec:
+def np_array_to_spec(arr: np.ndarray) -> ArraySpec:
     return ArraySpec(
-        shape=array.shape, dtype=array.dtype, device="numpy", value=array.reshape(-1)[0]
+        shape=arr.shape,
+        dtype=arr.dtype,
+        device="numpy",
+        value=arr.reshape(-1)[0]
     )
 
 
-def spec_to_array(spec: ArraySpec) -> jnp.ndarray:
+def spec_to_array(spec: ArraySpec) -> jp.ndarray:
     device = spec.device
     if device == "numpy":
         return np.full(spec.shape, spec.value, dtype=spec.dtype)
     else:
-        array = jnp.full(spec.shape, spec.value, dtype=spec.dtype)
+        array = jp.full(spec.shape, spec.value, dtype=spec.dtype)
         if isinstance(device, str):
-            if ":" in device:
-                backend_name, device_id = device.split(":")
+            if ':' in device:
+                backend_name, device_id = device.split(':')
                 device_id = int(device_id)
             else:
                 backend_name, device_id = device, 0
+
             try:
                 device = jax.devices(backend_name)[device_id]
             except Exception as e:
-                logging.warning(f"Backend {backend_name} not found, using CPU instead.")
-                device = jax.devices("cpu")[0]
-        array = jax.device_put(x=array, device=device)
+                logging.warning(f"Failed to get device {device} with error: {e}")
+                logging.warning(f"Using CPU instead.")
+
+        array = jax.device_put(array, device=device)
         return array
 
 
-def convert_to_array_spec(input: Any) -> Any:
-    if isinstance(input, jnp.ndarray):
-        return array_to_spec(input)
-    elif isinstance(input, np.ndarray):
-        return np_array_to_spec(input)
+def convert_to_array_spec(data: Any) -> Any:
+    if isinstance(data, jp.ndarray):
+        return array_to_spec(data)
+    elif isinstance(data, np.ndarray):
+        return np_array_to_spec(data)
     else:
-        return input
+        logging.warning(f"Data type {type(data)} is not supported for conversion to ArraySpec.")
+        return data
 
 
-def convert_from_array_spec(input: Any) -> Any:
-    if isinstance(input, ArraySpec):
-        return spec_to_array(input)
+def convert_from_array_spec(data: Any) -> Any:
+    if isinstance(data, ArraySpec):
+        return spec_to_array(data)
     else:
-        return input
+        logging.warning(f"Data type {type(data)} is not supported for conversion from ArraySpec.")
+        return data
 
 
 def save_pytree(pytree: Any, path: str | Path):
-    pytree = jax.tree_map(convert_to_array_spec, pytree)
+    pytree = jtr.tree_map(convert_to_array_spec, pytree)
     with open(path, "wb") as f:
         pickle.dump(pytree, f)
 
@@ -78,5 +86,4 @@ def save_pytree(pytree: Any, path: str | Path):
 def load_pytree(path: str | Path) -> Any:
     with open(path, "rb") as f:
         pytree = pickle.load(f)
-    pytree = jax.tree_map(convert_from_array_spec, pytree)
-    return pytree
+    return jtr.tree_map(convert_from_array_spec, pytree)
