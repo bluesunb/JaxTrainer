@@ -1,5 +1,7 @@
 # JAX-Trainer: Lightning-like API for JAX with Flax
 
+**More extensible Jax-Trainer forked from [phlippe/jax_trainer](https://github.com/phlippe/jax_trainer)**
+
 This repository is a work in progress. The goal is to provide a Lightning-like API for JAX with Flax. The API is inspired by [PyTorch Lightning](https://github.com/Lightning-AI/lightning) and has as basic element a `TrainerModule`. This module implements common training and evaluation loops, and can be used to train a model with a few lines of code. The train loop can be extended via callbacks, which are similar to Lightning's callbacks. The API is still in flux and may change in the future.
 
 For handling hyperparameters, this repository makes use of [ml-collections](https://ml-collections.readthedocs.io/en/latest/). This library provides a hierarchical configuration system, which is used to configure the `TrainerModule` and the callbacks.

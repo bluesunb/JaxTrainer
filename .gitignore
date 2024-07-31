@@ -144,3 +144,7 @@ pretrained_models/
 # Datasets
 data/
 demo_data/
+
+# IDE settings
+.idea/
+.vscode/
