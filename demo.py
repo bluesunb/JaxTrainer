@@ -27,6 +27,7 @@ def main():
     config = yaml.safe_load(Path("jax_trainer/examples/cifar10_cls.yaml").read_text())
     config = ConfigDict(config)
 
+    config.dataset.batch_size *= jax.device_count()
     dataset = build_dataset_module(config.dataset)
     sample_input = next(iter(dataset.train_loader))
 

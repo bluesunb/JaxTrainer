@@ -64,6 +64,6 @@ optimizer:
       warmup_steps: 100
 dataset:
   _class: jax_trainer.datasets.examples.build_cifar10_datasets
-  data_dir: ~/datasets/
+  data_dir: ~/Datasets/
   batch_size: 128
   num_workers: 0
