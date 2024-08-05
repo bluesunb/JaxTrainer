@@ -38,8 +38,6 @@ class DatasetModule:
 
 @dataclass
 class Batch:
-    size: int = field(pytree_node=False)
-
     def __getitem__(self, key):
         vals = {}
         if isinstance(key, int):
@@ -54,9 +52,15 @@ class Batch:
             else:
                 vals[k] = v
         return self.__class__(**vals)
+    
+    def __len__(self):
+        raise NotImplementedError
 
 
 @dataclass
 class SupervisedBatch(Batch):
     inputs: np.ndarray
     targets: np.ndarray
+
+    def __len__(self):
+        return self.inputs.shape[0]

@@ -37,8 +37,7 @@ def batch_collate(tuple_class: Type[NamedTuple], batch: Sequence[Any]) -> NamedT
     Returns:
         NamedTuple instance with batch data.
     """
-    size = batch[0].shape[0]
-    return tuple_class(size, *batch)
+    return tuple_class(*batch)
 
 
 def numpy_batch_collate(tuple_class: Type[NamedTuple], batch: Sequence[Any]) -> NamedTuple:
