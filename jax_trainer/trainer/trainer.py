@@ -14,7 +14,7 @@ import yaml
 from absl import logging
 from flax.core import FrozenDict
 from flax.training.common_utils import shard, shard_prng_key
-from flax.jax_utils import replicate, unreplicate
+from flax.jax_utils import replicate, unreplicate, pad_shard_unpad as flax_pad_shard_unpad
 
 from ml_collections import ConfigDict
 from tabulate import tabulate as py_tabulate
@@ -375,7 +375,7 @@ class TrainerModule:
                 }
 
             # pmean is not applied because there are mixed metrics that should be applied with pmean and not.
-            metrics = update_metrics(metrics, step_metrics, train=True, batch_size=batch.size)
+            metrics = update_metrics(metrics, step_metrics, train=True, batch_size=len(batch))
             return state, metrics
 
         return train_step
@@ -389,7 +389,7 @@ class TrainerModule:
             eval_rng = jax.random.PRNGKey(self.trainer_config.get("eval_seed", 0))
             loss, (_, step_metrics) = self.loss_function(state.params, state, batch, rng=eval_rng, train=False)
             step_metrics["loss"] = loss
-            metrics = update_metrics(metrics, step_metrics, train=False, batch_size=batch.size)
+            metrics = update_metrics(metrics, step_metrics, train=False, batch_size=len(batch))
             return metrics
 
         return eval_step
@@ -408,9 +408,9 @@ class TrainerModule:
         p_eval_step = jax.pmap(eval_step, axis_name="batch", donate_argnums=(2,))
 
         p_train_step = pad_shard_unpad(
-            p_train_step, static_argnums=(0, 2), static_argnames=('state', 'metrics'), static_returns=(0,))
-        p_eval_step = pad_shard_unpad(
-            p_eval_step, static_argnums=(0, 2), static_argnames=('state', 'metrics'), static_returns=())
+            p_train_step, static_argnums=(0, 2), static_argnames=('state', 'metrics'), static_returns=True)
+        p_eval_step = flax_pad_shard_unpad(
+            p_eval_step, static_argnums=(0, 2), static_argnames=('state', 'metrics'), static_return=True)
 
         self.train_step = p_train_step
         self.eval_step = p_eval_step

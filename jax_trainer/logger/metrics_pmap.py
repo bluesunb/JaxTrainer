@@ -1,6 +1,6 @@
 from dataclasses import make_dataclass
 from functools import partial
-from typing import Any, Tuple, Union
+from typing import Any, Sequence, Tuple, Union
 
 import jax
 import jax.numpy as jp
@@ -114,27 +114,6 @@ class Accuracy(Average):
                 f'labels.ndim+1={labels.ndim + 1}'
             )
         return super().update(values=(logits.argmax(axis=-1) == labels))
-
-
-@dataclass
-class __MultiMetric(Metric):
-    def reset(self):
-        metrics = {}
-        for metric_name in getattr(self, '_metric_names'):
-            metrics[metric_name] = getattr(self, metric_name).reset()
-        return self.replace(**metrics)
-    
-    def update(self, **updates):
-        metrics = {}
-        for metric_name in getattr(self, '_metric_names'):
-            metrics[metric_name] = getattr(self, metric_name).update(**updates)
-        return self.replace(**metrics)
-    
-    def compute(self) -> dict[str, Metric]:
-        return {
-            f'{metric_name}': getattr(self, metric_name).compute()
-            for metric_name in getattr(self, '_metric_names')
-        }
     
 
 class MultiMetric(PyTreeNode):
@@ -159,19 +138,45 @@ class MultiMetric(PyTreeNode):
             metrics[metric_name] = self.metrics[metric_name].update(**updates)
         return self.replace(metrics=metrics)
     
-    def compute(self) -> dict[str, Metric]:
+    def compute(self, keys: Sequence[str] = None) -> dict[str, Metric]:
+        keys = self._metric_names if keys is None else keys
         return {
             f'{metric_name}': self.metrics[metric_name].compute()
             for metric_name in self._metric_names
+            if metric_name in keys
         }
 
 
 if __name__ == "__main__":
-    avg = Average(argname='loss')
-    acc = Accuracy()
-    # multi_metric = make_multi_metric(loss=avg, accuracy=acc)
-    multi_metric = MultiMetric.create(loss=avg, accuracy=acc)
-    print(multi_metric)
+    logits = jax.random.normal(jax.random.key(0), (5, 2))
+    logits2 = jax.random.normal(jax.random.key(1), (5, 2))
+    labels = jp.array([1, 1, 0, 1, 0])
+    labels2 = jp.array([0, 1, 1, 1, 1])
 
-    print(jax.tree.map(jp.shape, multi_metric))
-    print()
+    batch_loss = jp.array([1, 2, 3, 4])
+    batch_loss2 = jp.array([3, 2, 1, 0])
+
+    metrics = MultiMetric.create(acc=Accuracy(), loss=Welford('loss'))
+    print(metrics.compute())
+    #{'accuracy': Array(nan, dtype=float32), 'loss': Array(nan, dtype=float32)}
+    metrics = metrics.update(logits=logits, labels=labels, loss=batch_loss)
+    print(metrics.compute())
+    #{'accuracy': Array(0.6, dtype=float32), 'loss': Array(2.5, dtype=float32)}
+    metrics = metrics.update(logits=logits2, labels=labels2, loss=batch_loss2)
+    print(metrics.compute())
+    # {'accuracy': Array(0.7, dtype=float32), 'loss': Array(2., dtype=float32)}
+    metrics = metrics.reset()
+    print(metrics.compute())
+    # {'accuracy': Array(nan, dtype=float32), 'loss': Array(nan, dtype=float32)}
+
+    from flax.nnx import metrics
+    metrics = metrics.MultiMetric(
+        acc=metrics.Accuracy(),
+        loss=metrics.Welford('loss'),
+    )
+    print('========')
+    metrics.update(logits=logits, labels=labels, loss=batch_loss)
+    print(metrics.compute())
+
+    metrics.update(logits=logits2, labels=labels2, loss=batch_loss2)
+    print(metrics.compute())
