@@ -21,7 +21,7 @@ class TestBuildDatasets(absltest.TestCase):
 
         for loaders in [
             dataset_module.train_loader,
-            dataset_module.val_loader,
+            dataset_module.valid_loader,
             dataset_module.test_loader,
         ]:
             batch = next(iter(loaders))

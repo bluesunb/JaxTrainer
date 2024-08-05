@@ -28,7 +28,7 @@ class TestBuildTrainer(absltest.TestCase):
         )
         eval_metrics = trainer.train_model(
             train_loader=dataset.train_loader,
-            val_loader=dataset.val_loader,
+            val_loader=dataset.valid_loader,
             test_loader=dataset.test_loader,
             num_epochs=trainer.trainer_config.train_epochs,
         )

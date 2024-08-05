@@ -1,0 +1,69 @@
+seed: 1004
+num_gpus: 1
+trainer:
+  _class: ImgClassifierTrainer
+  train_epochs: 5
+  check_valid_freq_epoch: 1
+  debug: False
+  pbar: True
+  tabulate_model: True
+  tabulate_param: True
+  seed: 42
+  eval_seed: 0
+  log_grad_norm: True
+  detect_nans: True
+  logger:
+    _class: Logger
+    log_dir: tests/checkpoints/BuildTrainerTest/
+    tool: TensorBoard
+    project_name: default
+    verbosity: warning
+  callbacks:
+    ModelCheckpoint:
+      monitor: val/acc
+      mode: max
+      save_top_k: 1
+      save_opt_state: False
+    ConfusionMatrixCallback:
+      normalize: True
+      cmap: Blues
+      freq_epoch: 2
+    LearningRateMonitor:
+      freq_epoch: 1
+    # JAXProfiler:
+    #   every_n_minutes: 60
+    #   first_step: 10
+    #   profile_n_steps: 20
+    # GradientSpikeMonitor:
+    #   every_n_epochs: 1
+    #   log_to_disk: True
+    #   ema_decay: 0.99
+    #   threshold: 3.0
+model:
+  _class: jax_trainer.examples.network.SimpleNetwork
+  hparams:
+    hidden_size: 32
+    num_classes: 10
+    batch_norm: True
+optimizer:
+  lr: 1e-3
+  optim:
+    _class: adam
+    params:
+      b1: 0.9
+      b2: 0.999
+  transforms:
+    pre:
+      grad_clip_norm: 10.0
+    post:
+      weight_decay: 0
+    # grad_clip_value: 0.1
+  scheduler:
+    name: warmup_cosine_decay
+    params:
+      warmup_steps: 100
+dataset:
+  _class: jax_trainer.datasets.examples.build_cifar10_datasets
+  data_dir: ~/datasets/
+  batch_size: 128
+  num_workers: 0

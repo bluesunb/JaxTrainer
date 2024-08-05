@@ -37,7 +37,18 @@ def update_metrics(
     batch_size: int | jax.Array,
 ) -> ImmutableMetrics:
     """
-    Update metrics with new step metrics.
+    Update value of metrics using new step metrics.
+
+    Metrics has the following structure:
+    {
+        "MetricKey1": {
+            "value": (Number | jax.Array),      # Value of the metric.
+            "count": (Number | jax.Array),      # Counting for number of metric calculation (to calculate avg or std).
+            "mode": (Optional[LogMetricMode]),  # Determines how to update the metric.
+            "log_freq": (Optional[LogFreq]),    # Determines when to log the metric.
+        }
+        {...}
+    }
 
     Args:
         global_metrics: Global metrics to update. If None, a new dictionary is created.
@@ -107,7 +118,7 @@ def _update_single_metrics(
     batch_size: int | jax.Array,
 ) -> MutableMetrics:
     """
-    Update a single global metric with new step metric.
+    Update values of a single metric for given key and log settings.
 
     Args:
         global_metrics: Global metrics to update.
@@ -170,7 +181,9 @@ def get_metrics(
     reset_metrics: bool = True,
 ) -> Tuple[ImmutableMetrics, HostMetrics]:
     """
-    Calculate metrics to log from global metrics.
+    Get metrics from global metrics that match the log frequency and aggregate them into host metrics.
+    If `reset_metrics` is True, the metrics are reset to zero.
+    
 
     Args:
         global_metrics: Global metrics to calculate metrics to log from.
@@ -179,7 +192,7 @@ def get_metrics(
 
     Returns:
         (0): (ImmutableMetrics): Updated global metrics.
-        (1): (HostMetrics):      Metrics to log (host metrics).
+        (1): (HostMetrics):      Aggregated metrics to log which are matched with the log frequency.
     """
     if isinstance(global_metrics, FrozenDict) and reset_metrics:
         global_metrics = unfreeze(global_metrics)

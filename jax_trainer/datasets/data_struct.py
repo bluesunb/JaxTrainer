@@ -3,7 +3,7 @@ from typing import Iterable, Optional, SupportsIndex
 import jax.numpy as jp
 import numpy as np
 import torch.utils.data as data
-from flax.struct import dataclass
+from flax.struct import dataclass, field
 from ml_collections import ConfigDict
 
 Dataset = data.Dataset | SupportsIndex
@@ -15,20 +15,30 @@ ArrayLike = jp.ndarray | np.ndarray
 class DatasetModule:
     """
     Dataset module that wraps a PyTorch Dataset.
+
+    Args:
+        config:         Configuration for the dataset module.
+        train_set:      Training dataset.
+        valid_set:      Validation dataset.
+        test_set:       Testing dataset.
+        train_loader:   Training data loader.
+        valid_loader:   Validation data loader.
+        test_loader:    Testing data loader.
+        matadata:       Metadata for the dataset module.
     """
     config: ConfigDict
-    train: Optional[Dataset]
-    valid: Optional[Dataset]
-    test: Optional[Dataset]
+    train_set: Optional[Dataset]
+    valid_set: Optional[Dataset]
+    test_set: Optional[Dataset]
     train_loader: Optional[DataLoader]
-    val_loader: Optional[DataLoader]
+    valid_loader: Optional[DataLoader]
     test_loader: Optional[DataLoader]
     matadata: Optional[dict] = None
 
 
 @dataclass
 class Batch:
-    size: int
+    size: int = field(pytree_node=False)
 
     def __getitem__(self, key):
         vals = {}

@@ -146,7 +146,7 @@ class Logger:
     def log_figure(
         self,
         key: str,
-        figure: plt.figure,
+        figure: plt.Figure,
         step: int = None,
         postfix: str = "",
         logging_stage: Optional[str] = None
@@ -213,7 +213,7 @@ class Logger:
         else:
             raise ValueError(f"Unsupported logger type: {type(self.logger)}")
 
-    def finalize(self, status: str):
+    def finalize(self, status: Literal["success", "failed"]):
         """
         Close the logger and finalize the logging
 
@@ -224,7 +224,7 @@ class Logger:
 
     def log_step(self, metrics: Metrics) -> Metrics:
         """
-        Log metrics for a single step.
+        Log metrics that are calculated for each step.
 
         It calculates the metrics up to current steps and logs them if the log_steps_every is reached.
 
@@ -251,7 +251,7 @@ class Logger:
 
         return metrics
 
-    def start_epoch(self, epoch: int, stage: Literal["train", "val", "test"] = "train"):
+    def start_epoch(self, epoch: int, stage: Literal["train", "valid", "test"] = "train"):
         """
         Start epoch logging by reset epoch metrics and related fields.
 
@@ -259,21 +259,21 @@ class Logger:
             epoch:  The index of the epoch.
             stage:  Logging stage. Default is "train".
         """
-        assert stage in ["train", "val", "test"], f"Invalid stage {stage}."
+        assert stage in ["train", "valid", "test"], f"Invalid stage {stage}."
         self.logging_stage = stage
         self.epoch_idx = epoch
         self._reset_epoch_metrics()
 
     def end_epoch(self, metrics: Metrics, save_metrics: bool = False) -> Tuple[Metrics, HostMetrics]:
         """
-        Ends the current epoch and logs the metrics.
+        Ends the current metrics and finalize(aggregate) it with the epoch metrics.
 
         Args:
             metrics:        The metrics to log.
             save_metrics:   Whether to save the metrics to a file or not.
 
         Returns:
-
+            Tuple[Metrics, HostMetrics]: The running metrics and the finalized epoch metrics
         """
         self.log_epoch_scalar("time", time.time() - self.epoch_start_time)
         metrics, epoch_metrics = get_metrics(metrics, log_freq=LogFreq.EPOCH, reset_metrics=True)
@@ -331,7 +331,7 @@ class Logger:
 
     def _finalize_metrics(self, metrics: HostMetrics) -> HostMetrics:
         """
-        Finalize the metrics of the current epoch and aggregate them.
+        Append the logging stage to the key and reduce the array to make logable finalized metrics.
 
         Args:
             metrics: The metrics to finalize.
@@ -341,7 +341,7 @@ class Logger:
         """
         final_metrics = {f'{self.logging_stage}/{key}' if "/" not in key else key: value for key, value in
                          metrics.items()}
-        final_metrics = jtr.tree_map(reduce_array_to_scalar, final_metrics)
+        final_metrics = jax.tree.map(reduce_array_to_scalar, final_metrics)
         return final_metrics
 
     @property

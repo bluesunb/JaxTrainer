@@ -28,7 +28,7 @@ def numpy_collate(batch: Union[np.ndarray, Sequence[Any], Any]) -> Union[np.ndar
 
 def batch_collate(tuple_class: Type[NamedTuple], batch: Sequence[Any]) -> NamedTuple:
     """
-    Collate function for NamedTuple classes.
+    Collate tuple into specified NamedTuple(Batch) class.
     
     Args:
         tuple_class:    NamedTuple class the batch is collated into.
@@ -65,4 +65,4 @@ def build_batch_collate(tuple_class: Type[NamedTuple]):
     Returns:
         Collate function for the NamedTuple class.
     """
-    return partial(batch_collate, tuple_class)
+    return partial(numpy_batch_collate, tuple_class)

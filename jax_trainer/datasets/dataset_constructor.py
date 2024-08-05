@@ -14,6 +14,6 @@ def build_dataset_module(dataset_config: ConfigDict) -> DatasetModule:
     Returns:
         DatasetModule: The dataset module.
     """
-    constructor = resolve_import(dataset_config.constructor)
+    constructor = resolve_import(dataset_config._class)
     module = constructor(dataset_config)
     return module

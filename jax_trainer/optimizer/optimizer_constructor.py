@@ -35,18 +35,18 @@ class OptimizerBuilder:
             optax.GradientTransformation: Optimizer function.
         """
         optim_config = self.optimizer_config.optim
-        opt_name = optim_config.name
+        opt_class = optim_config._class
         opt_params = optim_config.get("params", {})
 
-        if opt_name == "adam":
-            opt_class = partial(optax.adam, **opt_params)
-        elif opt_name == "adamw":
-            opt_class = partial(optax.adamw, **opt_params)
-        elif opt_name == "sgd":
-            opt_class = partial(optax.sgd, **opt_params)
+        if opt_class == "adam":
+            opt_func = partial(optax.adam, **opt_params)
+        elif opt_class == "adamw":
+            opt_func = partial(optax.adamw, **opt_params)
+        elif opt_class == "sgd":
+            opt_func = partial(optax.sgd, **opt_params)
         else:
-            opt_class = self.configure_optimizer(opt_name)
-        return opt_class
+            opt_func = self.configure_optimizer(opt_class)
+        return opt_func
 
     def configure_optimizer(self, opt_name: str, opt_params: dict, **kwargs) -> Callable:
         """
@@ -88,8 +88,11 @@ class OptimizerBuilder:
             scheduler = optax.constant_schedule(lr)
         elif scheduler_name == "cosine_decay":
             scheduler = optax.cosine_decay_schedule(lr, decay_steps=decay_steps, **scheduler_params)
+        elif scheduler_name == "warmup_cosine_decay":
+            scheduler = optax.warmup_cosine_decay_schedule(
+                init_value=0.0, peak_value=lr, decay_steps=decay_steps, **scheduler_params)
         else:
-            scheduler = self.configure_scheduler(scheduler_name, scheduler_params)
+            scheduler = self.configure_scheduler(scheduler_name, scheduler_params, decay_steps=decay_steps)
 
         return scheduler
 
@@ -112,6 +115,7 @@ class OptimizerBuilder:
         """
         try:
             scheduler_def = resolve_import_from_str(scheduler_name)
+            scheduler_params.update(**kwargs)
             return scheduler_def(**scheduler_params, **kwargs)
         except ImportError:
             raise ImportError(f"Scheduler {scheduler_name} not found.")
@@ -124,7 +128,7 @@ class OptimizerBuilder:
         Returns:
             Pre- and post-optimizer transforms.
         """
-        transform_config = self.optimizer_config.get("transform", ConfigDict())
+        transform_config = self.optimizer_config.get("transforms", ConfigDict())
         pre_transforms = transform_config.get("pre", {})
         post_transforms = transform_config.get("post", {})
         transforms = {"pre": [], "post": []}
