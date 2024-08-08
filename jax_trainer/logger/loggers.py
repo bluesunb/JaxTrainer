@@ -346,4 +346,4 @@ class Logger:
 
     @property
     def log_dir(self):
-        return self.logger.log_dir
+        return self.logger.log_dir 

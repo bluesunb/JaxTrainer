@@ -48,6 +48,7 @@ def fake_pmap_jit_wrapper(func, debug: bool = False):
     return wrapper
 
 
+# noinspection PyPackageRequirements
 class TrainerModule:
     def __init__(
         self,

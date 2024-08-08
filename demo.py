@@ -6,7 +6,7 @@ import jax
 import os
 from absl import logging
 
-# os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
 # jax.config.update('jax_debug_nans', True)
 
 from jax_trainer.datasets import build_dataset_module
@@ -55,5 +55,4 @@ def main():
 
 
 if __name__ == "__main__":
-    import chex
     main()

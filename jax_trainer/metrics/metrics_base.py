@@ -40,8 +40,8 @@ class Average(Metric):
 
     def reset(self):
         return self.replace(
-            total=jp.array(0, dtype=jp.float32),
-            count=jp.array(0, dtype=jp.float32),
+            total=jp.zeros_like(self.total, dtype=jp.float32),
+            count=jp.zeros_like(self.count, dtype=jp.float32),
         )
     
     def update(self, **kwargs):
@@ -74,9 +74,9 @@ class Welford(Metric):
 
     def reset(self):
         return self.replace(
-            count=jp.array(0, dtype=jp.float32),
-            mean=jp.array(0, dtype=jp.float32),
-            m2=jp.array(0, dtype=jp.float32),
+            count=jp.zeros_like(self.count, dtype=jp.float32),
+            mean=jp.zeros_like(self.mean, dtype=jp.float32),
+            m2=jp.zeros_like(self.m2, dtype=jp.float32),
         )
 
     def update(self, **kwargs):
@@ -123,28 +123,32 @@ class MultiMetric(PyTreeNode):
     @classmethod
     def create(cls, **metrics):
         metric_names = tuple(metrics.keys())
-        metrics = freeze({name: metric for name, metric in metrics.items()})
+        metrics = freeze({name: metric.reset() for name, metric in metrics.items()})
         return cls(_metric_names=metric_names, metrics=freeze(metrics))
-    
+        
     def reset(self):
         metrics = {}
         for metric_name in self._metric_names:
             metrics[metric_name] = self.metrics[metric_name].reset()
-        return self.replace(metrics=metrics)
+        return self.replace(metrics=freeze(metrics))
     
     def update(self, **updates):
         metrics = {}
         for metric_name in self._metric_names:
             metrics[metric_name] = self.metrics[metric_name].update(**updates)
-        return self.replace(metrics=metrics)
+        return self.replace(metrics=freeze(metrics))
     
-    def compute(self, keys: Sequence[str] = None) -> dict[str, Metric]:
+    def compute(self, keys: Sequence[str] = None) -> dict[str, Any]:
         keys = self._metric_names if keys is None else keys
         return {
             f'{metric_name}': self.metrics[metric_name].compute()
             for metric_name in self._metric_names
             if metric_name in keys
         }
+        
+    def merge(self, other: 'MultiMetric'):
+        metrics = {**self.metrics, **other.metrics}
+        return self.replace(metrics=metrics)
 
 
 if __name__ == "__main__":

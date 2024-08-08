@@ -15,7 +15,7 @@ from absl import logging
 from ml_collections import ConfigDict
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 
-from jax_trainer.logger.metrics_pmap import Metric, MultiMetric
+from jax_trainer.metrics.metrics_base import Metric, MultiMetric
 from jax_trainer.logger.utils import build_tool_logger
 
 Array = Union[jp.ndarray, np.ndarray]
@@ -61,6 +61,7 @@ class Logger:
             if metrics_type[k] == "image":
                 self.log_image(key=savekey, image=v, step=step)
             elif metrics_type[k] == "heatmap":
+                # FIXME: This is a temporary solution to log heatmap
                 self.log_figure(key=savekey, figure=plt.pcolormesh(v), step=step)
             else:
                 self.logger.log_metrics({savekey: v}, step=step)
