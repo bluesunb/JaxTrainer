@@ -2,6 +2,8 @@ seed: 1004
 num_gpus: 1
 trainer:
   _class: ImgClassifierTrainer
+  seed: 42
+  eval_seed: 0
   train_epochs: 3
   valid_freq_epoch: 1
   log_freq_step: 10
@@ -10,16 +12,17 @@ trainer:
   pbar: True
   tabulate_model: True
   tabulate_param: True
-  seed: 42
-  eval_seed: 0
   log_grad_norm: True
   detect_nans: True
+  restore_best: True
+  donate_state: True
   logger:
-    # _class: Logger
+    _class: jax_trainer.logger.Logger
     log_dir: tests/checkpoints/BuildTrainerTest/
     tool: TensorBoard
     project_name: default
     verbosity: warning
+    stderrthreshold: warning
 
     infer_with_name: False
   callbacks:
@@ -34,15 +37,6 @@ trainer:
       freq_epoch: 2
     LearningRateMonitor:
       freq_epoch: 1
-    # JAXProfiler:
-    #   every_n_minutes: 60
-    #   first_step: 10
-    #   profile_n_steps: 20
-    # GradientSpikeMonitor:
-    #   every_n_epochs: 1
-    #   log_to_disk: True
-    #   ema_decay: 0.99
-    #   threshold: 3.0
 model:
   _class: jax_trainer.examples.network.SimpleNetwork
   hparams:
@@ -50,6 +44,7 @@ model:
     num_classes: 10
     batch_norm: True
 optimizer:
+  builder: jax_trainer.optimizer.OptimizerBuilder
   lr: 1e-3
   optim:
     _class: adam
