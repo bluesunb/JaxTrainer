@@ -14,6 +14,7 @@ import optax
 import yaml
 from absl import logging
 from flax.core import FrozenDict
+from flax.struct import dataclass, field
 from flax.jax_utils import unreplicate
 from ml_collections import ConfigDict
 from tabulate import tabulate as py_tabulate
@@ -28,7 +29,10 @@ from jax_trainer.trainer.train_state import Params, TrainState
 from jax_trainer.trainer.utils import loss_fn_return_check, replicate_pjit
 from jax_trainer.utils import class_to_name, resolve_import
 
+nonpytree_node = partial(field, pytree_node=False)
 
+
+@partial(dataclass, frozen=False)
 class Trainer:
     """
     Trainer class that controls the
@@ -39,15 +43,31 @@ class Trainer:
     - logging class (Logger)
     - callbacks (checkpointing, monitoring, etc.)
     """
+    trainer_config: ConfigDict = nonpytree_node()
+    model_config: ConfigDict = nonpytree_node()
+    optimizer_config: ConfigDict = nonpytree_node()
+    data_module: DatasetModule = nonpytree_node()
+    sample_input: jp.ndarray | Dict[str, jp.ndarray]
+    global_step: int = nonpytree_node(default=0)
 
-    def __init__(
-        self,
+    state: TrainState = field(default=None)
+    model: Any | nn.Module = nonpytree_node(default=None)
+    logger: Any | Logger = nonpytree_node(default=None)
+    callbacks: List[BaseCallback] = nonpytree_node(default_factory=list)
+    train_step_callbacks: List[TrainingCallback] = nonpytree_node(default_factory=list)
+
+    train_step: callable = nonpytree_node(default=None)
+    eval_step: callable = nonpytree_node(default=None)
+
+    @classmethod
+    def create(
+        cls,
         trainer_config: ConfigDict,
         model_config: ConfigDict,
         optimizer_config: ConfigDict,
         data_module: DatasetModule,
-        sample_input: Batch,
-    ):
+        sample_input: jp.ndarray | Dict[str, jp.ndarray],
+    ) -> "Trainer":
         """
         Args:
             trainer_config:     Configuration for the trainer. (config.trainer)
@@ -56,22 +76,29 @@ class Trainer:
             data_module:        Data module for the dataset.
             sample_input:       Sample input for the model.
         """
-        self.trainer_config = trainer_config
-        self.model_config = model_config
-        self.optimizer_config = optimizer_config
-        self.data_module = data_module
-        self.sample_input = sample_input
+        trainer: Trainer = cls(
+            trainer_config=trainer_config,
+            model_config=model_config,
+            optimizer_config=optimizer_config,
+            data_module=data_module,
+            sample_input=sample_input,
+        )
+        trainer = trainer.replace(
+            model=trainer.init_model(),
+            logger=trainer.init_logger(),
+            state=trainer.init_state(),
+        )
+        callback, train_step_callbacks = trainer.init_callbacks()
+        trainer = trainer.replace(
+            callbacks=callback, train_step_callbacks=train_step_callbacks
+        )
 
-        self.valid_freq_epoch = self.trainer_config.get("valid_freq_epoch", 1)
-        self.training = False
-        self.global_step = 0
-
-        self.model = self.init_model()
-        self.logger = self.init_logger()
-        self.state = self.init_state()
-        self.callbacks, self.train_step_callbacks = self.init_callbacks()
-        self.start_logger()
-        self._pmap_functions()
+        train_step, eval_step = trainer._pmap_functions()
+        trainer = trainer.replace(
+            train_step=train_step,
+            eval_step=eval_step,
+        )
+        return trainer
 
     def init_model(self) -> nn.Module:
         """
@@ -208,7 +235,6 @@ class Trainer:
         """Initialize the log_dir & save the initial states of the model."""
         logger_config = self.trainer_config.get("logger", ConfigDict())
         log_dir = Path(self.log_dir)
-        self.trainer_config.logger.log_dir = str(log_dir)
         logging.info(f"Logging to {log_dir}")
 
         (log_dir / "metrics").mkdir(parents=True, exist_ok=True)
@@ -428,8 +454,9 @@ class Trainer:
             kwargs["axis_name"] = "batch"
 
         donate_argnums = ((0, 2) if self.trainer_config.get("donate_state", True) else (2,))
-        self.train_step = replicate_pjit(train_step, donate_argnums=donate_argnums, **kwargs)
-        self.eval_step = replicate_pjit(eval_step, donate_argnums=(2,), **kwargs)
+        train_step = replicate_pjit(train_step, donate_argnums=donate_argnums, **kwargs)
+        eval_step = replicate_pjit(eval_step, donate_argnums=(2,), **kwargs)
+        return train_step, eval_step
 
     @loss_fn_return_check
     def loss_function(
@@ -623,4 +650,4 @@ class Trainer:
 
     @property
     def log_dir(self) -> str:
-        return self.trainer_config.logger.log_dir
+        return self.logger.log_dir
