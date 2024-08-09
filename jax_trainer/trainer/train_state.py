@@ -1,9 +1,11 @@
-import jax
-import flax, optax
-import flax.linen as nn
-from flax import struct
 from functools import partial
-from typing import Any, Tuple, Optional, Callable, Union
+from typing import Any, Callable, Optional, Tuple, Union
+
+import flax
+import flax.linen as nn
+import jax
+import optax
+from flax import struct
 
 nonpytree_field = partial(struct.field, pytree_node=False)      # which is not vectorizable
 Params = flax.core.FrozenDict[str, Any]
