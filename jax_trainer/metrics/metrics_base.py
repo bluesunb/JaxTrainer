@@ -35,8 +35,8 @@ class Metric:
 @dataclass
 class Average(Metric):
     argname: str = nonpytree_node(default='values')
-    total: jp.float32 = field(default_factory=array_factory(0))
-    count: jp.float32 = field(default_factory=array_factory(0))
+    total: jax.Array = field(default_factory=array_factory(0))
+    count: jax.Array = field(default_factory=array_factory(0))
 
     def reset(self):
         return self.replace(
@@ -60,17 +60,17 @@ class Average(Metric):
 
 @dataclass
 class Statistics:
-    mean: jp.float32
-    standard_error_of_mean: jp.float32
-    standard_deviation: jp.float32
+    mean: jax.Array
+    standard_error_of_mean: jax.Array
+    standard_deviation: jax.Array
 
 
 @dataclass
 class Welford(Metric):
     argname: str = nonpytree_node(default='values')
-    count: jp.float32 = field(default_factory=array_factory(0))
-    mean: jp.float32 = field(default_factory=array_factory(0))
-    m2: jp.float32 = field(default_factory=array_factory(0))
+    count: jax.Array = field(default_factory=array_factory(0))
+    mean: jax.Array = field(default_factory=array_factory(0))
+    m2: jax.Array = field(default_factory=array_factory(0))
 
     def reset(self):
         return self.replace(
@@ -98,11 +98,12 @@ class Welford(Metric):
         variance = self.m2 / self.count
         standard_deviation = variance ** 0.5
         sem = standard_deviation / (self.count ** 0.5)
-        return Statistics(
-            mean=self.mean,
-            standard_error_of_mean=sem,
-            standard_deviation=standard_deviation,
-        )
+        # return Statistics(
+        #     mean=self.mean,
+        #     standard_error_of_mean=sem,
+        #     standard_deviation=standard_deviation,
+        # )
+        return {"mean": self.mean, "sem": sem, "std": standard_deviation,}
     
 
 @dataclass

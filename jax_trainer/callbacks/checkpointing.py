@@ -62,15 +62,16 @@ class ModelCheckpoint(BaseCallback):
         assert self.config.monitor in eval_metrics, \
             f"Monitor metric {self.config.monitor} not found in metrics, but has: {'. '.join(eval_metrics.keys())}"
 
+        state = self.trainer.maybe_unreplicate(self.trainer.state)
         save_items = {
-            "params": ckpt.args.StandardSave(self.trainer.state.params),
+            "params": ckpt.args.StandardSave(state.params),
             "metadata": ckpt.args.JsonSave(self.metadata)
         }
 
-        if self.trainer.state.extra_variabels is not None:
-            save_items["extra_variables"] = ckpt.args.StandardSave(self.trainer.state.extra_variabels)
+        if self.trainer.state.extra_variables is not None:
+            save_items["extra_variables"] = ckpt.args.StandardSave(state.extra_variables)
         if self.config.get("save_opt_state", False):
-            save_items["opt_state"] = ckpt.args.StandardSave(self.trainer.state.opt_state)
+            save_items["opt_state"] = ckpt.args.StandardSave(state.opt_state)
 
         save_items = ckpt.args.Composite(**save_items)
         eval_metrics = {k: v for k, v in eval_metrics.items() if isinstance(v, (Number, str, bool))}

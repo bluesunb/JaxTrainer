@@ -25,8 +25,7 @@ class ConfusionMatrixCallback(BaseCallback):
         else:
             repr_fmt = self.config.get("repr_fmt", "d")
 
-        fig, ax = plt.subplots(figsize=self.config.get("figsize", (8, 8)),
-                               dpi=self.config.get("dpi", 100))
+        fig, ax = plt.subplots(figsize=self.config.get("figsize", (8, 8)), dpi=self.config.get("dpi", 100))
 
         sns.heatmap(conf_matrix, annot=True, fmt=repr_fmt, cmap=self.config.get("cmap", "Blues"), ax=ax)
         ax.set_xlabel("Predicted")

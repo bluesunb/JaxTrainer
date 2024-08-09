@@ -22,6 +22,7 @@ Array = Union[jp.ndarray, np.ndarray]
 
 
 def reduce_array_to_scalar(array: Array) -> Number | Array:
+    """Reduce an array to a scalar value if the array has only one element."""
     if isinstance(array, Array) and array.size == 1:
         return array.item()
     return array
@@ -34,7 +35,21 @@ class Logger:
         self.logger = build_tool_logger(config, full_config)
         self.logging_stage = "train"
 
-    def infer_type(self, metrics: Dict[str, jp.ndarray]) -> Literal["scalar", "heatmap", "image", "unknown"]:
+    def infer_type(self, metrics: Dict[str, Any]) -> Literal["scalar", "heatmap", "image", "unknown"]:
+        """
+        Infer the representation type of the metrics. 
+        The type can be one of the following: `scalar`, `heatmap`, `image`, `unknown`.
+        - `scalar`:     A scalar value.
+        - `heatmap`:    2d array representing a heatmap.
+        - `image`:      3d array representing an image.
+        - `unknown`:    Unknown(undefined) type.
+        
+        Args:
+            metrics:    Dictionary of metrics.
+            
+        Returns:
+            Dictionary of metric types.
+        """
         infer_use_name = self.config.get("infer_use_name", False)
         metrics = flatten_dict(metrics, sep='#')
         
@@ -45,7 +60,7 @@ class Logger:
                 if v.size == 1:
                     return "scalar"
                 elif v.ndim == 2:
-                    return "heatmap" if (k.endswith("_map") and infer_use_name) else "image"
+                    return "heatmap" if not k.endswith("img") or (infer_use_name and k.endswith("map")) else "image"
                 elif v.ndim == 3:
                     return "image"
             return "unknown"
@@ -53,16 +68,17 @@ class Logger:
         metrics_type = {k: check_type(k, v) for k, v in metrics.items()}
         return unflatten_dict(metrics_type, sep='#')
     
-    def log_metrics(self, metrics: Dict[str, jp.ndarray], step: int = 0, postfix: str = ""):
+    def log_metrics(self, metrics: Dict[str, Any], step: int = 0, prefix: str = ""):
+        metrics = flatten_dict(metrics, sep='_')
         metrics_type = self.infer_type(metrics)
         metrics_to_log = {k: reduce_array_to_scalar(v) for k, v in metrics.items() if metrics_type[k] != "unknown"}
         for k, v in metrics_to_log.items():
-            savekey = f"{k}_{postfix}" if postfix else k
+            savekey = f"{prefix}/{k}" if prefix else k
             if metrics_type[k] == "image":
                 self.log_image(key=savekey, image=v, step=step)
             elif metrics_type[k] == "heatmap":
                 # FIXME: This is a temporary solution to log heatmap
-                self.log_figure(key=savekey, figure=plt.pcolormesh(v), step=step)
+                self.log_figure(key=savekey, figure=plt.pcolormesh(v).figure, step=step)
             else:
                 self.logger.log_metrics({savekey: v}, step=step)
 
@@ -83,7 +99,8 @@ class Logger:
         key: str,
         image: Array,
         step: int = None,
-        postfix: str = ""
+        postfix: str = "",
+        logging_stage: Literal["train", "val", "test"] = "train"
     ):
         """
         Logs image to the logger using the logger tool.
@@ -95,12 +112,10 @@ class Logger:
             postfix:        Postfix to append to the log key.
             logging_stage:  Logging stage. Default is None.
         """
-        step = step or self.total_step_counter
-
         if isinstance(image, jp.ndarray):
             image = jax.device_get(image)
 
-        log_key = f"{self.logging_stage}/{key}{postfix}"
+        log_key = f"{logging_stage}/{key}{postfix}"
         if isinstance(self.logger, TensorBoardLogger):
             self.logger.experiment.add_image(
                 tag=log_key,
@@ -112,7 +127,34 @@ class Logger:
             self.logger.log_image(key=log_key, image=image, step=step)
         else:
             raise ValueError(f"Unsupported logger type: {type(self.logger)}")
-
+        
+    def log_figure(
+        self,
+        key: str,
+        figure: plt.Figure,
+        step: int = None,
+        log_postfix: str = "",
+        logging_stage: Literal["train", "val", "test"] = "train"
+    ):
+        """
+        Logs pyplot figure to the logger using the logger tool.
+        
+        Args:
+            key:            Name of the figure.
+            figure:         Figure to log.
+            step:           Step number.
+            log_postfix:    Postfix to append to the log key.
+            logging_stage:  Logging mode. Default is None.
+        """
+        if isinstance(self.logger, TensorBoardLogger):
+            TensorBoardLogger.experiment
+            self.logger.experiment.add_figure(
+                tag=f"{logging_stage}/{key}{log_postfix}", figure=figure, global_step=step)
+        elif isinstance(self.logger, WandbLogger):
+            self.logger.experiment.log({f"{logging_stage}/{key}{log_postfix}": figure}, step=step)
+        else:
+            raise ValueError(f"Unsupported logger type: {type(self.logger)}")
+        
     def log_embedding(
         self,
         key: str,

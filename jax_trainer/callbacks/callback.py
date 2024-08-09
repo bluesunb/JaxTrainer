@@ -21,16 +21,25 @@ class BaseCallback:
 
         self.log_dir = self.trainer.log_dir
         self.freq_epoch = config.get("freq_epoch", 1)
+        
 
+    def _on_training_start(self):
+        """Called when the training starts."""        
+        self.on_training_start()
+    
     def on_training_start(self):
-        """Called when the training starts."""
+        """Called when the training starts. To be implemented by subclasses."""
         pass
+    
+    def _on_training_end(self):
+        """Called when the training ends."""
+        self.on_training_end()
 
     def on_training_end(self):
         """Called when the training ends."""
         pass
 
-    def __on_training_epoch_start(self, epoch_idx: int):
+    def _on_training_epoch_start(self, epoch_idx: int):
         """
         Called when a training epoch starts.
 
@@ -49,7 +58,7 @@ class BaseCallback:
         """
         pass
 
-    def __on_training_epoch_end(self, train_metrics, epoch_idx: int):
+    def _on_training_epoch_end(self, train_metrics, epoch_idx: int):
         """
         Called when a training epoch ends.
 
@@ -70,7 +79,7 @@ class BaseCallback:
         """
         pass
 
-    def __on_validation_epoch_start(self, epoch_idx: int):
+    def _on_validation_epoch_start(self, epoch_idx: int):
         """
         Called when a validation epoch starts.
 
@@ -89,7 +98,7 @@ class BaseCallback:
         """
         pass
 
-    def __on_validation_epoch_end(self, eval_metrics, epoch_idx: int):
+    def _on_validation_epoch_end(self, eval_metrics, epoch_idx: int):
         """
         Called when a validation epoch ends.
 
@@ -109,14 +118,38 @@ class BaseCallback:
             epoch_idx:      Index of the epoch.
         """
         pass
+    
+    def _on_test_epoch_start(self, epoch_idx: int):
+        """
+        Called when a test epoch starts.
+
+        Args:
+            epoch_idx: Index of the epoch.
+        """
+        self.on_test_epoch_start(epoch_idx)
 
     def on_test_epoch_start(self, epoch_idx: int):
-        """Called when a test epoch starts."""
+        """
+        Called when a test epoch starts. To be implemented by subclasses.
+        
+        Args:
+            epoch_idx: Index of the epoch.
+        """
         pass
+    
+    def _on_test_epoch_end(self, test_metrics, epoch_idx: int):
+        """
+        Called when a test epoch ends.
+
+        Args:
+            test_metrics:   Metrics for the test epoch.
+            epoch_idx:      Index of the epoch.
+        """
+        self.on_test_epoch_end(test_metrics, epoch_idx)
 
     def on_test_epoch_end(self, test_metrics, epoch_idx: int):
         """
-        Called when a test epoch ends.
+        Called when a test epoch ends. To be implemented by subclasses.
 
         Args:
             test_metrics:   Metrics for the test epoch.
@@ -135,5 +168,13 @@ class BaseCallback:
 
 
 class TrainingCallback(BaseCallback):
+    def __init__(self, config: ConfigDict, trainer: Any, data_module: Optional[DatasetModule] = None):
+        super().__init__(config, trainer, data_module)
+        self.freq_step = config.get("freq_step", 1)
+        
+    def _on_training_step(self, train_metrics, epoch_idx: int, step_idx: int):
+        if step_idx % self.freq_step == 0:
+            self.on_training_step(train_metrics, epoch_idx, step_idx)
+    
     def on_training_step(self, train_metrics, epoch_idx: int, step_idx: int):
         pass

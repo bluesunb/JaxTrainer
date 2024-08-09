@@ -2,8 +2,10 @@ seed: 1004
 num_gpus: 1
 trainer:
   _class: ImgClassifierTrainer
-  train_epochs: 5
-  check_valid_freq_epoch: 1
+  train_epochs: 3
+  valid_freq_epoch: 1
+  log_freq_step: 10
+  pmap: True
   debug: False
   pbar: True
   tabulate_model: True
@@ -18,9 +20,11 @@ trainer:
     tool: TensorBoard
     project_name: default
     verbosity: warning
+
+    infer_with_name: False
   callbacks:
     ModelCheckpoint:
-      monitor: val/acc
+      monitor: valid/acc
       mode: max
       save_top_k: 1
       save_opt_state: False

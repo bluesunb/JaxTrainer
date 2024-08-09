@@ -162,40 +162,22 @@ def replicate_pjit(
         )
     else:
         p_fn = jax.jit(fn, **pjit_kwargs)
+        
+    def nonzero_rank(v):
+        ranks = jax.tree.leaves(jax.tree.map(jp.ndim, v))
+        return not len(ranks) or min(ranks) > 0
     
     def wrapper(*args, **kwargs):
         if pmap:
-            # args = [
-            #     arg
-            #     if i in static_argnums or min(jax.tree.leaves(jax.tree.map(jp.ndim, arg))) > 0
-            #     else replicate(arg)
-            #     for i, arg in enumerate(args)
-            # ]
-            # kwargs = {
-            #     k: v
-            #     if k in static_argnames or min(jax.tree.leaves(jax.tree.map(jp.ndim, v))) > 0
-            #     else replicate(v)
-            #     for k, v in kwargs.items()
-            # }
-            
-            args_ = []
-            kwargs_ = {}
-            for i, arg in enumerate(args):
-                if i not in static_argnums:
-                    ranks = jax.tree.leaves(jax.tree.map(jp.ndim, arg))
-                    if len(ranks) and min(ranks) == 0:
-                        arg = replicate(arg)
-                
-                args_.append(arg)
-            
-            for k, v in kwargs.items():
-                if k not in static_argnames:
-                    ranks = jax.tree.leaves(jax.tree.map(jp.ndim, v))
-                    if len(ranks) and min(ranks) == 0:
-                        v = replicate(v)
-                        
-                kwargs_[k] = v
+            args = tuple(
+                arg if i not in static_argnums and nonzero_rank(arg) else replicate(arg)
+                for i, arg in enumerate(args)
+            )
+            kwargs = {
+                k: v if k not in static_argnames and nonzero_rank(v) else replicate(v)
+                for k, v in kwargs.items()
+            }
                     
-        return p_fn(*args_, **kwargs_)
+        return p_fn(*args, **kwargs)
     
     return wrapper

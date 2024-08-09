@@ -17,5 +17,5 @@ class LearningRateMonitor(BaseCallback):
         self._log_lr(epoch_idx)
 
     def _log_lr(self, epoch_idx: int):
-        last_lr = self.trainer.state.opt_state.hyperparams["schedule"].item()
+        last_lr = self.trainer.state.opt_state.hyperparams["schedule"].mean()
         self.trainer.logger.log_scalar("optimizer/lr", last_lr, epoch_idx)

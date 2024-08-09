@@ -87,7 +87,7 @@ class ImgClassifierTrainer(Trainer):
         num_classes = self.model_config.hparams.num_classes
         return MultiMetric.create(
             acc=Lambda('acc'),
-            acc_std=Welford('acc'),
+            acc_stat=Welford('acc'),
             acc_max=Max('acc'),
             conf_matrix=Sum('conf_matrix', reduce=False, total=jp.zeros((num_classes, num_classes))),
             # conf_matrix=Sum('conf_matrix', reduce=False),
@@ -100,7 +100,7 @@ class ImgClassifierTrainer(Trainer):
     def init_eval_metrics(self) -> MultiMetric:
         return MultiMetric.create(
             acc=Lambda('acc'),
-            acc_std=Welford('acc'),
+            acc_stat=Welford('acc'),
             acc_max=Max('acc'),
             conf_matrix=Sum('conf_matrix', reduce=False),
         )
