@@ -7,4 +7,10 @@ from .metrics_base import (
     Welford
 )
 
-from .metrics_custom import Timeit, Lambda, Max, Min, Sum
+from .metrics_custom import (
+    Timeit, 
+    Lambda, 
+    Max, 
+    Min, 
+    Sum
+)

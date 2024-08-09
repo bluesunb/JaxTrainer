@@ -10,7 +10,7 @@ import flax.linen as nn
 from jax_trainer.datasets import SupervisedBatch, Batch
 from jax_trainer.trainer.train_state import TrainState
 # from jax_trainer.trainer.trainer import TrainerModule
-from jax_trainer.trainer.trainer_tree import Trainer
+from jax_trainer.trainer.trainer import Trainer
 from jax_trainer.metrics import MultiMetric, Metric, Average, Max, Min, Sum, Lambda, Welford
 
 

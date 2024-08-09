@@ -3,3 +3,5 @@ from jax_trainer.utils.imports import (
     resolve_import,
     resolve_import_from_str
 )
+
+from jax_trainer.utils.aliases import ALIASE
