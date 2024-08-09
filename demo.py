@@ -1,24 +1,23 @@
-import shutil
-import yaml
 from pathlib import Path
-from ml_collections import ConfigDict
+
 import jax
-import os
+import yaml
 from absl import logging
+from ml_collections import ConfigDict
 
 # os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
 # jax.config.update('jax_debug_nans', True)
-
 from jax_trainer.datasets import build_dataset_module
 from jax_trainer.examples.img_classifier import ImgClassifierTrainer
 
+
 def colored_str(s: str, stype: str):
-    if stype.lower() == 'info':
-        return f'\033[0;34m{s}\033[0m'
-    elif stype.lower() == 'warning':
-        return f'\033[0;33m{s}\033[0m'
-    elif stype.lower() == 'error':
-        return f'\033[0;31m{s}\033[0m'
+    if stype.lower() == "info":
+        return f"\033[0;34m{s}\033[0m"
+    elif stype.lower() == "warning":
+        return f"\033[0;33m{s}\033[0m"
+    elif stype.lower() == "error":
+        return f"\033[0;31m{s}\033[0m"
     else:
         return s
 
@@ -35,9 +34,9 @@ def main():
     # logging.basicConfig(level=logging.INFO)
 
     # logging.set_verbosity(logging.INFO)
-    logging.info('[INFO] tmp.py: dataset.train_loader')
-    logging.warning(colored_str('[WARNING] tmp.py: dataset.train_loader', stype='warning'))
-    logging.error(colored_str('[ERROR] tmp.py: dataset.train_loader', stype='error'))
+    logging.info("[INFO] tmp.py: dataset.train_loader")
+    logging.warning(colored_str("[WARNING] tmp.py: dataset.train_loader", stype="warning"))
+    logging.error(colored_str("[ERROR] tmp.py: dataset.train_loader", stype="error"))
 
     trainer = ImgClassifierTrainer(
         trainer_config=config.trainer,
